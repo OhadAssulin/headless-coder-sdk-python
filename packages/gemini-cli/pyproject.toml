@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "headless-coder-sdk-gemini-cli"
+version = "0.1.0"
+description = "Gemini CLI adapter for the Python headless coder SDK."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "../../LICENSE" }
+authors = [
+  { name = "Ohad Assulin" },
+]
+dependencies = [
+  "headless-coder-sdk-core>=0.1.0",
+  "typing_extensions>=4.9",
+]
+keywords = ["ai", "gemini", "cli", "sdk"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+  "License :: OSI Approved :: MIT License",
+  "Intended Audience :: Developers",
+]
+
+[project.urls]
+Homepage = "https://github.com/OhadAssulin/headless-coder-sdk"
+Source = "https://github.com/OhadAssulin/python-headless-coder"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/headless_coder_sdk"]

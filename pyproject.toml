@@ -1,0 +1,35 @@
+[tool.ruff]
+line-length = 110
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F"]
+ignore = []
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra --maxfail=1"
+asyncio_mode = "auto"
+filterwarnings = [
+  "error::DeprecationWarning",
+]
+
+[tool.coverage.run]
+branch = true
+source = [
+  "packages/core/src",
+  "packages/gemini-cli/src",
+  "packages/claude-agent-sdk/src",
+  "packages/codex-sdk/src",
+]
+
+[tool.uv.workspace]
+members = [
+  "packages/core",
+  "packages/gemini-cli",
+  "packages/claude-agent-sdk",
+  "packages/codex-sdk",
+]
