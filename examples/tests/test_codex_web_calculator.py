@@ -10,14 +10,12 @@ from headless_coder_sdk.codex_sdk import CODER_NAME as CODEX_NAME
 from headless_coder_sdk.core import create_coder
 
 from .calculator_validators import ensure_basic_calculator_behaviour
-from .env import find_codex_binary, node_available
-from .jsdom_bridge import JsdomUnavailableError
+from .env import find_codex_binary
 
 CODEX_BINARY = find_codex_binary()
 pytestmark = [
     pytest.mark.asyncio,
     pytest.mark.skipif(not CODEX_BINARY, reason="Codex CLI binary not found."),
-    pytest.mark.skipif(not node_available(), reason="Node.js + jsdom required for DOM validation."),
 ]
 
 
@@ -40,11 +38,10 @@ def build_prompt(target_dir: Path) -> list[dict[str, str]]:
     ]
 
 
-async def test_codex_generates_calculator(tmp_path: Path) -> None:
+async def test_codex_generates_calculator(workspace_factory) -> None:
     """Ensures Codex produces a functional calculator web page."""
 
-    workspace = tmp_path / "codex_web"
-    workspace.mkdir(parents=True, exist_ok=True)
+    workspace = workspace_factory('codex_web')
 
     coder = create_coder(
         CODEX_NAME,
@@ -67,8 +64,4 @@ async def test_codex_generates_calculator(tmp_path: Path) -> None:
     html_path = workspace / 'index.html'
     html = html_path.read_text(encoding='utf-8')
     assert 'calculator' in html.lower(), 'Generated HTML should reference a calculator.'
-
-    try:
-        ensure_basic_calculator_behaviour(html)
-    except JsdomUnavailableError as exc:  # pragma: no cover - guarded by skip
-        pytest.skip(str(exc))
+    ensure_basic_calculator_behaviour(html)

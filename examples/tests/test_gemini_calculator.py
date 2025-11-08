@@ -11,15 +11,13 @@ from headless_coder_sdk.core import create_coder
 from headless_coder_sdk.gemini_cli import CODER_NAME as GEMINI_NAME
 
 from .calculator_validators import ensure_basic_calculator_behaviour
-from .env import gemini_binary, node_available
-from .jsdom_bridge import JsdomUnavailableError
+from .env import gemini_binary
 
 GEMINI_BINARY = gemini_binary()
 skip_reason = "Gemini CLI binary not found. Set GEMINI_BINARY_PATH or place 'gemini' on PATH."
 pytestmark = [
     pytest.mark.asyncio,
     pytest.mark.skipif(not GEMINI_BINARY, reason=skip_reason),
-    pytest.mark.skipif(not node_available(), reason="Node.js + jsdom required for DOM validation."),
 ]
 
 def build_prompt(workspace: Path) -> list[dict[str, str]]:
@@ -40,11 +38,10 @@ def build_prompt(workspace: Path) -> list[dict[str, str]]:
     ]
 
 
-async def test_gemini_generates_calculator(tmp_path: Path) -> None:
+async def test_gemini_generates_calculator(workspace_factory) -> None:
     """Ensures Gemini produces a calculator UI that behaves correctly."""
 
-    workspace = tmp_path / "gemini_calculator"
-    workspace.mkdir(parents=True, exist_ok=True)
+    workspace = workspace_factory('gemini_calculator')
 
     coder = create_coder(
         GEMINI_NAME,
@@ -68,9 +65,4 @@ async def test_gemini_generates_calculator(tmp_path: Path) -> None:
 
     html_path = workspace / 'index.html'
     html = html_path.read_text(encoding='utf-8')
-    assert 'numberA' in html, 'Generated HTML should include the first input field.'
-
-    try:
-        ensure_basic_calculator_behaviour(html)
-    except JsdomUnavailableError as exc:  # pragma: no cover - guarded by skip
-        pytest.skip(str(exc))
+    ensure_basic_calculator_behaviour(html)

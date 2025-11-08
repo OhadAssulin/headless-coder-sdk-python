@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from headless_coder_sdk.core import create_coder
@@ -32,11 +30,10 @@ SCHEMA = {
 }
 
 
-async def test_gemini_structured_output(tmp_path: Path) -> None:
+async def test_gemini_structured_output(workspace_factory) -> None:
     """Ensures Gemini can return structured JSON output for a schema."""
 
-    workspace = tmp_path / "gemini_structured"
-    workspace.mkdir(parents=True, exist_ok=True)
+    workspace = workspace_factory('gemini_structured')
 
     coder = create_coder(
         GEMINI_NAME,

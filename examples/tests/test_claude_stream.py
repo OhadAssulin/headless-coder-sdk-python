@@ -4,20 +4,20 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+
 import pytest
 
 from headless_coder_sdk.core import create_coder
 
 from .calculator_validators import ensure_trig_calculator_behaviour
-from .env import claude_credentials_available, claude_sdk_available, node_available, python_supports_claude
-from .jsdom_bridge import JsdomUnavailableError
+from .env import claude_credentials_available, claude_sdk_available, python_supports_claude
+from .workspace import ensure_claude_config
 
 pytestmark = [
     pytest.mark.asyncio,
     pytest.mark.skipif(not python_supports_claude(), reason='Claude Agent SDK requires Python 3.10+.'),
     pytest.mark.skipif(not claude_sdk_available(), reason='claude-agent-sdk is not installed.'),
     pytest.mark.skipif(not claude_credentials_available(), reason='Claude credentials are unavailable.'),
-    pytest.mark.skipif(not node_available(), reason='Node.js + jsdom required for DOM validation.'),
 ]
 
 if claude_sdk_available():
@@ -42,11 +42,11 @@ def build_prompt(workspace: Path) -> list[dict[str, str]]:
     ]
 
 
-async def test_claude_streams_calculator(tmp_path: Path) -> None:
+async def test_claude_streams_calculator(workspace_factory) -> None:
     """Streams Claude output to build a trig calculator."""
 
-    workspace = tmp_path / "claude_stream"
-    workspace.mkdir(parents=True, exist_ok=True)
+    workspace = workspace_factory('claude_stream')
+    ensure_claude_config(workspace)
     stream_path = workspace / 'stream.txt'
 
     coder = create_coder(
@@ -68,9 +68,6 @@ async def test_claude_streams_calculator(tmp_path: Path) -> None:
             await close(thread)
 
     html = (workspace / 'index.html').read_text(encoding='utf-8')
-    try:
-        ensure_trig_calculator_behaviour(html)
-    except JsdomUnavailableError as exc:  # pragma: no cover - guarded by skip
-        pytest.skip(str(exc))
+    ensure_trig_calculator_behaviour(html)
 
     assert stream_path.read_text(encoding='utf-8').strip(), 'Stream output should be recorded.'

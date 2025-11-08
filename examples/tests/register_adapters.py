@@ -6,15 +6,17 @@ from headless_coder_sdk.core import get_adapter_factory, register_adapter
 from headless_coder_sdk.codex_sdk import CODER_NAME as CODEX_NAME, create_adapter as create_codex
 from headless_coder_sdk.gemini_cli import CODER_NAME as GEMINI_NAME, create_adapter as create_gemini
 
-try:  # pragma: no cover - depends on Python version and dependency availability
+try:  # pragma: no cover - depends on optional dependency
+    import claude_agent_sdk  # noqa: F401
+except ModuleNotFoundError:  # pragma: no cover - exercised when sdk missing
+    CLAUDE_AVAILABLE = False
+else:
     from headless_coder_sdk.claude_agent_sdk import (
         CODER_NAME as CLAUDE_NAME,
         create_adapter as create_claude,
     )
 
     CLAUDE_AVAILABLE = True
-except ModuleNotFoundError:
-    CLAUDE_AVAILABLE = False
 
 _REGISTERED = False
 

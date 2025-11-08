@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from headless_coder_sdk.core import create_coder
 
 from .env import claude_credentials_available, claude_sdk_available, python_supports_claude
+from .workspace import ensure_claude_config
 
 pytestmark = [
     pytest.mark.asyncio,
@@ -23,11 +22,11 @@ else:  # pragma: no cover - guarded by skip
     CLAUDE_NAME = 'claude'
 
 
-async def test_claude_resume(tmp_path: Path) -> None:
+async def test_claude_resume(workspace_factory) -> None:
     """Ensures Claude sessions can be resumed using thread identifiers."""
 
-    workspace = tmp_path / "claude_resume"
-    workspace.mkdir(parents=True, exist_ok=True)
+    workspace = workspace_factory('claude_resume')
+    ensure_claude_config(workspace)
 
     coder = create_coder(
         CLAUDE_NAME,

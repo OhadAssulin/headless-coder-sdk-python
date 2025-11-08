@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from headless_coder_sdk.codex_sdk import CODER_NAME as CODEX_NAME
@@ -19,11 +17,10 @@ pytestmark = [
 ]
 
 
-async def test_codex_resume(tmp_path: Path) -> None:
+async def test_codex_resume(workspace_factory) -> None:
     """Ensures Codex sessions can be resumed via thread identifiers."""
 
-    workspace = tmp_path / "codex_resume"
-    workspace.mkdir(parents=True, exist_ok=True)
+    workspace = workspace_factory('codex_resume')
 
     coder = create_coder(
         CODEX_NAME,

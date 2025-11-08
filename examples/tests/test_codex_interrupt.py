@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from headless_coder_sdk.codex_sdk import CODER_NAME as CODEX_NAME
@@ -23,11 +21,10 @@ PROMPT = (
 )
 
 
-async def test_codex_stream_interrupt(tmp_path: Path) -> None:
+async def test_codex_stream_interrupt(workspace_factory) -> None:
     """Ensures aborting the signal yields cancelled + error events."""
 
-    workspace = tmp_path / "codex_interrupt"
-    workspace.mkdir(parents=True, exist_ok=True)
+    workspace = workspace_factory('codex_interrupt')
 
     coder = create_coder(
         CODEX_NAME,

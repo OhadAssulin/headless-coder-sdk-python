@@ -2,28 +2,26 @@
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
-import asyncio
 import pytest
 
 from headless_coder_sdk.core import create_coder
 
 from .calculator_validators import ensure_basic_calculator_behaviour
-from .env import claude_credentials_available, claude_sdk_available, node_available, python_supports_claude
-from .jsdom_bridge import JsdomUnavailableError
+from .env import claude_credentials_available, claude_sdk_available, python_supports_claude
+from .workspace import ensure_claude_config
 
 py_version_reason = 'Claude Agent SDK requires Python 3.10+.'
 missing_sdk_reason = 'claude-agent-sdk is not installed; install it to run Claude tests.'
 missing_creds_reason = 'Claude credentials are unavailable in the environment.'
-missing_node_reason = 'Node.js + jsdom required for DOM validation.'
 
 pytestmark = [
     pytest.mark.asyncio,
     pytest.mark.skipif(not python_supports_claude(), reason=py_version_reason),
     pytest.mark.skipif(not claude_sdk_available(), reason=missing_sdk_reason),
     pytest.mark.skipif(not claude_credentials_available(), reason=missing_creds_reason),
-    pytest.mark.skipif(not node_available(), reason=missing_node_reason),
 ]
 
 if claude_sdk_available():
@@ -54,11 +52,11 @@ def build_prompt(workspace: Path) -> list[dict[str, str]]:
     ]
 
 
-async def test_claude_generates_calculator(tmp_path: Path) -> None:
+async def test_claude_generates_calculator(workspace_factory) -> None:
     """Ensures Claude generates a functional calculator web page."""
 
-    workspace = tmp_path / "claude_calculator"
-    workspace.mkdir(parents=True, exist_ok=True)
+    workspace = workspace_factory('claude_calculator')
+    ensure_claude_config(workspace)
 
     coder = create_coder(
         CLAUDE_NAME,
@@ -78,8 +76,4 @@ async def test_claude_generates_calculator(tmp_path: Path) -> None:
             await close(thread)
 
     html = (workspace / 'index.html').read_text(encoding='utf-8')
-    assert 'numberA' in html
-    try:
-        ensure_basic_calculator_behaviour(html)
-    except JsdomUnavailableError as exc:  # pragma: no cover - guarded by skip
-        pytest.skip(str(exc))
+    ensure_basic_calculator_behaviour(html)

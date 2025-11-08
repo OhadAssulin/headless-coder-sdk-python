@@ -62,8 +62,6 @@ def node_available() -> bool:
 def claude_sdk_available() -> bool:
     """Checks whether the claude-agent-sdk package can be imported."""
 
-    if not python_supports_claude():
-        return False
     try:  # pragma: no cover - depends on optional dependency
         importlib.import_module('claude_agent_sdk')
     except ModuleNotFoundError:

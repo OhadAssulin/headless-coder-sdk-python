@@ -2,12 +2,21 @@
 
 from __future__ import annotations
 
+import uuid
 from pathlib import Path
+from typing import Callable
+import sys
 
 import pytest
 
+from .env import claude_sdk_available
+
+if not claude_sdk_available():  # pragma: no cover - executed when real SDK unavailable
+    fakes_path = Path(__file__).resolve().parents[1] / 'fakes'
+    sys.path.insert(0, str(fakes_path))
+
 from .register_adapters import ensure_adapters_registered
-from .workspace import DEFAULT_ROOT
+from .workspace import DEFAULT_ROOT, reset_workspace
 
 ensure_adapters_registered()
 
@@ -21,8 +30,11 @@ def examples_root() -> Path:
 
 
 @pytest.fixture
-def fresh_workspace(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    """Provides an isolated workspace directory for stateful tests."""
+def workspace_factory() -> Callable[[str], Path]:
+    """Factory fixture that resets workspaces under the shared root."""
 
-    temp_dir = tmp_path_factory.mktemp('headless-coder')
-    return Path(temp_dir)
+    def _factory(name: str) -> Path:
+        unique = f"{name}-{uuid.uuid4().hex}"
+        return reset_workspace(unique)
+
+    return _factory

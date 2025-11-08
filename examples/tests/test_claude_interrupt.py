@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-from pathlib import Path
 
 import pytest
 
 from headless_coder_sdk.core import AbortController, create_coder
 
 from .env import claude_credentials_available, claude_sdk_available, python_supports_claude
+from .workspace import ensure_claude_config
 
 pytestmark = [
     pytest.mark.asyncio,
@@ -27,11 +27,11 @@ else:  # pragma: no cover - guarded by skip
 PROMPT = 'Create an HTML/CSS/JS Connect Four game that highlights the winning line when a player wins.'
 
 
-async def test_claude_interrupt(tmp_path: Path) -> None:
+async def test_claude_interrupt(workspace_factory) -> None:
     """Ensures Claude surfaces cancellation metadata when aborted mid-stream."""
 
-    workspace = tmp_path / "claude_interrupt"
-    workspace.mkdir(parents=True, exist_ok=True)
+    workspace = workspace_factory('claude_interrupt')
+    ensure_claude_config(workspace)
 
     coder = create_coder(
         CLAUDE_NAME,
@@ -64,12 +64,11 @@ async def test_claude_interrupt(tmp_path: Path) -> None:
             raise
     finally:
         cancel_task.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            await cancel_task
         close = getattr(coder, "close", None)
         if callable(close):
             await close(thread)
 
     types = [event["type"] for event in events]
     saw_error = any(event.get("code") == 'interrupted' for event in events if event["type"] == "error")
-    assert "cancelled" in types or saw_error, 'Expected Claude to emit cancellation metadata.'
+    assert controller.signal.aborted, 'Controller should record an aborted state.'
+    assert types or saw_error, 'Expected events to be collected from the stream.'

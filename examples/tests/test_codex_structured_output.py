@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 from headless_coder_sdk.codex_sdk import CODER_NAME as CODEX_NAME
@@ -34,11 +32,10 @@ SCHEMA = {
 }
 
 
-async def test_codex_structured_output(tmp_path: Path) -> None:
+async def test_codex_structured_output(workspace_factory) -> None:
     """Ensures Codex can return JSON that conforms to the provided schema."""
 
-    workspace = tmp_path / "codex_structured"
-    workspace.mkdir(parents=True, exist_ok=True)
+    workspace = workspace_factory('codex_structured')
     coder = create_coder(
         CODEX_NAME,
         {

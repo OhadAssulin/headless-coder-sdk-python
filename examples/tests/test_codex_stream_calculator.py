@@ -11,14 +11,12 @@ from headless_coder_sdk.codex_sdk import CODER_NAME as CODEX_NAME
 from headless_coder_sdk.core import create_coder
 
 from .calculator_validators import ensure_trig_calculator_behaviour
-from .env import find_codex_binary, node_available
-from .jsdom_bridge import JsdomUnavailableError
+from .env import find_codex_binary
 
 CODEX_BINARY = find_codex_binary()
 pytestmark = [
     pytest.mark.asyncio,
     pytest.mark.skipif(not CODEX_BINARY, reason="Codex CLI binary not found."),
-    pytest.mark.skipif(not node_available(), reason="Node.js + jsdom required for DOM validation."),
 ]
 
 
@@ -42,11 +40,10 @@ def build_prompt(workspace: Path) -> list[dict[str, str]]:
     ]
 
 
-async def test_codex_streams_trig_calculator(tmp_path: Path) -> None:
+async def test_codex_streams_trig_calculator(workspace_factory) -> None:
     """Streams Codex output while verifying the generated trig calculator."""
 
-    workspace = tmp_path / "codex_stream"
-    workspace.mkdir(parents=True, exist_ok=True)
+    workspace = workspace_factory('codex_stream')
     stream_path = workspace / "stream.txt"
 
     coder = create_coder(
@@ -70,11 +67,7 @@ async def test_codex_streams_trig_calculator(tmp_path: Path) -> None:
             await close(thread)
 
     html = (workspace / 'index.html').read_text(encoding='utf-8')
-    assert 'angleDegrees' in html, 'Generated HTML should contain the degrees input.'
-    try:
-        ensure_trig_calculator_behaviour(html)
-    except JsdomUnavailableError as exc:  # pragma: no cover - guarded by skip
-        pytest.skip(str(exc))
+    ensure_trig_calculator_behaviour(html)
 
     streamed = stream_path.read_text(encoding='utf-8').strip()
     assert streamed, 'Stream output should be recorded.'

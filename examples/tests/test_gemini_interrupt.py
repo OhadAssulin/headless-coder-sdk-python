@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from pathlib import Path
+import contextlib
 
 import pytest
 
@@ -11,7 +11,6 @@ from headless_coder_sdk.core import AbortController, create_coder
 from headless_coder_sdk.gemini_cli import CODER_NAME as GEMINI_NAME
 
 from .env import gemini_binary
-import contextlib
 
 GEMINI_BINARY = gemini_binary()
 skip_reason = "Gemini CLI binary not found. Set GEMINI_BINARY_PATH or place 'gemini' on PATH."
@@ -23,11 +22,10 @@ pytestmark = [
 PROMPT = 'Create an HTML/CSS/JS Connect Four game that highlights the winning line when a player wins.'
 
 
-async def test_gemini_interrupt(tmp_path: Path) -> None:
+async def test_gemini_interrupt(workspace_factory) -> None:
     """Ensures Gemini emits cancellation metadata when aborted."""
 
-    workspace = tmp_path / "gemini_interrupt"
-    workspace.mkdir(parents=True, exist_ok=True)
+    workspace = workspace_factory('gemini_interrupt')
 
     coder = create_coder(
         GEMINI_NAME,
