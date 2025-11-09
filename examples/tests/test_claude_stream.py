@@ -32,9 +32,25 @@ def build_prompt(workspace: Path) -> list[dict[str, str]]:
         'Tasks:',
         '- Overwrite index.html with a sin/cos calculator.',
         '- Requirements:',
-        '  * Provide inputs for degrees/radians plus spans with ids sinValue and cosValue.',
-        '  * Define window.computeTrig() that updates the spans and returns the numeric results.',
-        '  * Ensure clicking the compute button prevents default submission and triggers computeTrig.',
+        (
+            '  * Provide inputs for degrees and radians plus a compute button '
+            '(ids: degreesInput, radiansInput, computeTrig).'
+        ),
+        (
+            '  * Place spans with ids sinValue and cosValue to display results; '
+            'numeric outputs may include prefixes.'
+        ),
+        (
+            '  * Define window.computeTrig() in inline JavaScript to parse inputs, '
+            'compute Math.sin/Math.cos, update spans, and return the values.'
+        ),
+        (
+            '  * Ensure clicking computeTrig prevents default submission and calls '
+            'window.computeTrig().'
+        ),
+        '  * Include helper functions for converting between degrees and radians.',
+        '  * Use inline CSS; avoid external dependencies.',
+        '- Confirm completion with a single sentence.',
     ]
     return [
         {"role": "system", "content": "You generate deterministic project files."},

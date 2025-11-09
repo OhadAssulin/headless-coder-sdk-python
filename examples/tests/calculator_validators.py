@@ -17,7 +17,11 @@ def ensure_trig_calculator_behaviour(html: str) -> None:
         ['sinResult', 'sinValue', 'trigSin'],
         ['cosResult', 'cosValue', 'trigCos'],
     ]
-    missing_groups = [group for group in alternatives if not any(_has_id(html, candidate) for candidate in group)]
+    missing_groups = [
+        group
+        for group in alternatives
+        if not any(_has_id(html, candidate) for candidate in group)
+    ]
     assert not missing_groups, f"Missing expected trig calculator ids: {missing_groups}"
 
 
@@ -31,5 +35,9 @@ def ensure_basic_calculator_behaviour(html: str) -> None:
         ['compute', 'computeButton', 'calculateButton', 'trigCompute'],
         ['result', 'output', 'resultValue'],
     ]
-    missing_groups = [group for group in alternatives if not any(_has_id(html, candidate) for candidate in group)]
+    missing_groups = [
+        group
+        for group in alternatives
+        if not any(_has_id(html, candidate) for candidate in group)
+    ]
     assert not missing_groups, f"Missing expected calculator ids: {missing_groups}"

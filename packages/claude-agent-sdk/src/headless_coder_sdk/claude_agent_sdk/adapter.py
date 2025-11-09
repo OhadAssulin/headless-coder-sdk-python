@@ -7,7 +7,7 @@ import contextlib
 import json
 import logging
 import uuid
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, is_dataclass
 from typing import Any, AsyncIterator, Callable, Optional
 
 from headless_coder_sdk.core import (
@@ -252,13 +252,13 @@ class ClaudeAdapter(HeadlessCoder):
                     yield _create_cancelled_event(reason)
                     yield _create_interrupted_error_event(reason)
                     return
-                    if not saw_done:
-                        yield {
-                            "type": "done",
-                            "provider": CODER_NAME,
-                            "ts": now(),
-                            "originalItem": {"reason": "completed"},
-                        }
+                if not saw_done:
+                    yield {
+                        "type": "done",
+                        "provider": CODER_NAME,
+                        "ts": now(),
+                        "originalItem": {"reason": "completed"},
+                    }
             finally:
                 await self._cleanup_run(state, active)
 
@@ -383,6 +383,10 @@ class ClaudeAdapter(HeadlessCoder):
             return None
         payload = getattr(result_message, "result", None)
         if payload:
+            if isinstance(payload, str):
+                parsed = _extract_json_payload(payload)
+                if parsed is not None:
+                    return parsed
             return payload
         return _extract_json_payload(assistant_text)
 
@@ -447,7 +451,7 @@ def _normalize_claude_message(message: Any, sdk: _ClaudeSdkBindings) -> list[Cod
                     "role": "assistant",
                     "text": text,
                     "ts": ts,
-                    "originalItem": message,
+                    "originalItem": _serialize_original(message),
                 }
             )
         for block in getattr(message, "content", []):
@@ -460,7 +464,7 @@ def _normalize_claude_message(message: Any, sdk: _ClaudeSdkBindings) -> list[Cod
                         "callId": block.id,
                         "args": block.input,
                         "ts": ts,
-                        "originalItem": block,
+                        "originalItem": _serialize_original(block),
                     }
                 )
             elif isinstance(block, sdk.ToolResultBlock):
@@ -472,7 +476,7 @@ def _normalize_claude_message(message: Any, sdk: _ClaudeSdkBindings) -> list[Cod
                         "callId": block.tool_use_id,
                         "result": block.content,
                         "ts": ts,
-                        "originalItem": block,
+                        "originalItem": _serialize_original(block),
                     }
                 )
         return events
@@ -484,7 +488,7 @@ def _normalize_claude_message(message: Any, sdk: _ClaudeSdkBindings) -> list[Cod
                     "provider": CODER_NAME,
                     "message": _build_result_error_message(message),
                     "ts": ts,
-                    "originalItem": message,
+                    "originalItem": _serialize_original(message),
                 }
             )
             return events
@@ -495,10 +499,12 @@ def _normalize_claude_message(message: Any, sdk: _ClaudeSdkBindings) -> list[Cod
                     "provider": CODER_NAME,
                     "stats": message.usage,
                     "ts": ts,
-                    "originalItem": message,
+                    "originalItem": _serialize_original(message),
                 }
             )
-        events.append({"type": "done", "provider": CODER_NAME, "ts": ts, "originalItem": message})
+        events.append(
+            {"type": "done", "provider": CODER_NAME, "ts": ts, "originalItem": _serialize_original(message)}
+        )
         return events
     if isinstance(message, sdk.SystemMessage):
         label = getattr(message, "subtype", "system")
@@ -510,7 +516,7 @@ def _normalize_claude_message(message: Any, sdk: _ClaudeSdkBindings) -> list[Cod
                 "threadId": session_id,
                 "label": label,
                 "ts": ts,
-                "originalItem": message,
+                "originalItem": _serialize_original(message),
             }
         )
         return events
@@ -522,9 +528,23 @@ def _normalize_claude_message(message: Any, sdk: _ClaudeSdkBindings) -> list[Cod
             "provider": CODER_NAME,
             "label": getattr(message, "__class__", type("", (), {})).__name__,
             "ts": ts,
-            "originalItem": message,
+            "originalItem": _serialize_original(message),
         }
     ]
+
+
+def _serialize_original(item: Any) -> Any:
+    """Converts Claude SDK dataclasses into JSON-serialisable payloads."""
+
+    if item is None:
+        return None
+    if is_dataclass(item):
+        return asdict(item)
+    if isinstance(item, dict):
+        return {key: _serialize_original(value) for key, value in item.items()}
+    if isinstance(item, (list, tuple)):
+        return [_serialize_original(value) for value in item]
+    return item
 
 
 def _normalize_stream_event_dict(event: dict[str, Any]) -> list[CoderStreamEvent]:
@@ -542,7 +562,7 @@ def _normalize_stream_event_dict(event: dict[str, Any]) -> list[CoderStreamEvent
                 "text": event.get("text") or event.get("content"),
                 "delta": True,
                 "ts": ts,
-                "originalItem": event,
+                "originalItem": _serialize_original(event),
             }
         ]
     if "assistant" in event_type:
@@ -553,7 +573,7 @@ def _normalize_stream_event_dict(event: dict[str, Any]) -> list[CoderStreamEvent
                 "role": "assistant",
                 "text": event.get("text") or event.get("content"),
                 "ts": ts,
-                "originalItem": event,
+                "originalItem": _serialize_original(event),
             }
         ]
     if "tool_use" in event_type:
@@ -565,7 +585,7 @@ def _normalize_stream_event_dict(event: dict[str, Any]) -> list[CoderStreamEvent
                 "callId": event.get("id"),
                 "args": event.get("input"),
                 "ts": ts,
-                "originalItem": event,
+                "originalItem": _serialize_original(event),
             }
         ]
     if "tool_result" in event_type:
@@ -577,7 +597,7 @@ def _normalize_stream_event_dict(event: dict[str, Any]) -> list[CoderStreamEvent
                 "callId": event.get("tool_use_id") or event.get("id"),
                 "result": event.get("output"),
                 "ts": ts,
-                "originalItem": event,
+                "originalItem": _serialize_original(event),
             }
         ]
     if "error" in event_type:
@@ -587,18 +607,25 @@ def _normalize_stream_event_dict(event: dict[str, Any]) -> list[CoderStreamEvent
                 "provider": CODER_NAME,
                 "message": event.get("message", "Claude run failed"),
                 "ts": ts,
-                "originalItem": event,
+                "originalItem": _serialize_original(event),
             }
         ]
     if event_type in ("result", "completed", "final"):
-        return [{"type": "done", "provider": CODER_NAME, "ts": ts, "originalItem": event}]
+        return [
+            {
+                "type": "done",
+                "provider": CODER_NAME,
+                "ts": ts,
+                "originalItem": _serialize_original(event),
+            }
+        ]
     return [
         {
             "type": "progress",
             "provider": CODER_NAME,
             "label": event.get("type") or event.get("label") or "claude.event",
             "ts": ts,
-            "originalItem": event,
+            "originalItem": _serialize_original(event),
         }
     ]
 
