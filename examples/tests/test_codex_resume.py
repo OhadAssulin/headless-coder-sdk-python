@@ -42,6 +42,8 @@ async def test_codex_resume(workspace_factory) -> None:
         assert thread_id, "Codex thread should expose an id after the first run."
 
         resumed = await coder.resume_thread(thread_id)
+        resumed_id = getattr(resumed, 'id', None)
+        assert resumed_id == thread_id, "Resumed handle should expose the original thread id."
         second = await resumed.run("Provide two bullet points summarising the repository goals.")
         assert isinstance(second.text, str) and second.text.strip(), "Resumed run should return text."
     finally:
