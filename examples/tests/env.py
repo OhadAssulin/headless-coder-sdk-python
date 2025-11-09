@@ -15,12 +15,8 @@ CLAUDE_KEYS = (
     'ANTHROPIC_API_TOKEN',
     'AWS_BEARER_TOKEN_BEDROCK',
 )
-CLAUDE_TEMPLATE = Path(
-    os.environ.get(
-        'CLAUDE_TEST_CONFIG_TEMPLATE',
-        '/Users/ohadassulin/vs-code-projects/twitter_research/.claude',
-    )
-)
+CLAUDE_TEMPLATE_ENV = os.environ.get('CLAUDE_TEST_CONFIG_TEMPLATE')
+CLAUDE_TEMPLATE = Path(CLAUDE_TEMPLATE_ENV) if CLAUDE_TEMPLATE_ENV else None
 
 
 def find_codex_binary() -> Optional[str]:
@@ -50,7 +46,8 @@ def gemini_binary() -> Optional[str]:
 def claude_credentials_available() -> bool:
     """Checks whether Claude credentials are accessible for the adapter."""
 
-    return any(os.environ.get(key) for key in CLAUDE_KEYS) or CLAUDE_TEMPLATE.exists()
+    template_ready = CLAUDE_TEMPLATE and CLAUDE_TEMPLATE.exists()
+    return any(os.environ.get(key) for key in CLAUDE_KEYS) or template_ready
 
 
 def python_supports_claude() -> bool:

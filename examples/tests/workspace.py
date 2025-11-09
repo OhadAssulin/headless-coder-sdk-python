@@ -8,12 +8,8 @@ import shutil
 from pathlib import Path
 
 DEFAULT_ROOT = Path(os.environ.get('HEADLESS_CODER_TEST_ROOT', '/tmp/headless-coder-sdk-python'))
-CLAUDE_TEMPLATE = Path(
-    os.environ.get(
-        'CLAUDE_TEST_CONFIG_TEMPLATE',
-        '/Users/ohadassulin/vs-code-projects/twitter_research/.claude',
-    ),
-)
+CLAUDE_TEMPLATE_ENV = os.environ.get('CLAUDE_TEST_CONFIG_TEMPLATE')
+CLAUDE_TEMPLATE = Path(CLAUDE_TEMPLATE_ENV) if CLAUDE_TEMPLATE_ENV else None
 CLAUDE_CONFIG_FILES = ('settings.json', 'settings.local.json')
 
 
@@ -38,7 +34,7 @@ def ensure_claude_config(workspace: Path) -> None:
 
     target = workspace / '.claude'
     shutil.rmtree(target, ignore_errors=True)
-    if CLAUDE_TEMPLATE.exists():
+    if CLAUDE_TEMPLATE and CLAUDE_TEMPLATE.exists():
         shutil.copytree(CLAUDE_TEMPLATE, target)
     else:
         target.mkdir(parents=True, exist_ok=True)
