@@ -233,6 +233,32 @@ async def run_multi_provider_review(commit_hash: str) -> None:
 
 ---
 
+## 📤 Publishing the packages to PyPI
+
+Each adapter lives under `packages/<name>` with its own `pyproject.toml`. To publish a package (core, codex, claude, gemini) to PyPI or TestPyPI:
+
+1. **Update metadata** – bump the version in that package’s `pyproject.toml` and adjust changelog/README entries. Align versions across packages whenever you change shared interfaces.
+2. **Build artifacts** from inside the package directory:
+
+   ```bash
+   cd packages/<name>
+   python -m pip install --upgrade build twine
+   python -m build  # creates dist/*.tar.gz and dist/*.whl
+   ```
+
+3. **Verify & upload** (swap `pypi` with `testpypi` for dry runs):
+
+   ```bash
+   twine check dist/*
+   twine upload --repository pypi dist/*
+   ```
+
+4. **Tag the repo** (e.g., `git tag headless-coder-sdk-codex-v0.3.0`) so the Python releases stay in lock-step with the TypeScript monorepo history.
+
+Because all wheels share the `headless_coder_sdk` namespace, users can mix-and-match installs (`pip install headless-coder-sdk-core headless-coder-sdk-claude-agent ...`), but publishing matching versions avoids surprises downstream.
+
+---
+
 ## ⏹️ Handling Interrupts
 
 ```python
